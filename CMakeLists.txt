@@ -24,9 +24,8 @@ endif()
 set(SOURCES
     src/main.cpp
     src/FrameDecoder.cpp
-    src/FrameReceiver.cpp
+    src/FrameHandler.cpp
     src/PipelineController.cpp
-    src/ResultSender.cpp
     src/ResultSerializer.cpp
     src/InferenceEngine.cpp
 )

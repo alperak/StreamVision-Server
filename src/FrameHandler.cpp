@@ -30,7 +30,7 @@ void FrameHandler::stop()
     }
 }
 
-std::shared_ptr<std::vector<uchar>> FrameHandler::getLatestFrame()
+std::vector<uchar> FrameHandler::getLatestFrame() const
 {
     std::lock_guard<std::mutex> lock(frameMutex_);
     return latestFrame_;
@@ -52,7 +52,7 @@ void FrameHandler::receiveFrameAndSendResult()
         if (isFrameReceived) {
             {
                 std::lock_guard<std::mutex> lock(frameMutex_);
-                latestFrame_ = std::make_shared<std::vector<uchar>>(
+                latestFrame_ = std::vector<uchar>(
                                         static_cast<uchar*>(receivedMsg.data()),
                                         static_cast<uchar*>(receivedMsg.data()) + receivedMsg.size());
             }

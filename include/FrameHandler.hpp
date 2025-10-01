@@ -24,7 +24,7 @@ public:
 
     void start();
     void stop();
-    std::shared_ptr<std::vector<uchar>> getLatestFrame();
+    std::vector<uchar> getLatestFrame() const;
     void setFrameResult(const nlohmann::json& jsonResult);
 
 private:
@@ -40,8 +40,8 @@ private:
     std::thread handleThread_;
     std::atomic<bool> isRunning_{false};
 
-    std::shared_ptr<std::vector<uchar>> latestFrame_{};
-    std::mutex frameMutex_;
+    std::vector<uchar> latestFrame_{};
+    mutable std::mutex frameMutex_;
 
     nlohmann::json latestJsonResult_;
     std::mutex jsonResultMutex_;

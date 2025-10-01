@@ -43,8 +43,8 @@ void PipelineController::process()
 {
     while (isRunning_) {
         auto encodedFrame = frameHandler_.getLatestFrame();
-        if (encodedFrame && !encodedFrame->empty()) {
-            auto decodedFrame = FrameDecoder::decodeJPEG(*encodedFrame);
+        if (!encodedFrame.empty()) {
+            auto decodedFrame = FrameDecoder::decodeJPEG(encodedFrame);
             inferenceEngine_.pushFrame(std::move(decodedFrame));
             auto detections = inferenceEngine_.getDetections();
             auto detectionsAsJson = ResultSerializer::toJson(detections);

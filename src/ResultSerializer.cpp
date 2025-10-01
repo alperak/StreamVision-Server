@@ -1,6 +1,6 @@
 #include "ResultSerializer.hpp"
 
-nlohmann::json toJson(const std::vector<Detection>& detections)
+nlohmann::json ResultSerializer::toJson(const std::vector<Detection>& detections)
 {
     nlohmann::json detectionsJson;
     detectionsJson["detections"] = nlohmann::json::array();

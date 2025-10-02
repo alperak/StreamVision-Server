@@ -8,7 +8,7 @@ nlohmann::json ResultSerializer::toJson(const std::vector<Detection>& detections
     for (const auto& detection : detections) {
         detectionsJson["detections"].push_back({
             {"classId", detection.classId},
-            {"label", detection.className},
+            {"className", detection.className},
             {"confidence", detection.confidence},
             {"boundingBox", {
                 {"x", detection.boundingBox.x},

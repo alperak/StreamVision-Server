@@ -1,7 +1,7 @@
+import sys
 from ultralytics import YOLO
 
 # Load a model
-model = YOLO("yolo11s.pt")
+model = YOLO(sys.argv[1])
 # Export the model
-model.export(format="onnx", device=0, half=True)
-
+model.export(format="onnx")

@@ -72,7 +72,6 @@ void FrameHandler::receiveFrameAndSendResult()
             std::string jsonString = latestJsonResult_.dump();
             zmq::message_t responseMsg(jsonString.begin(), jsonString.end());
             serverSocket_.send(responseMsg, zmq::send_flags::none);
-            latestJsonResult_.clear();
         }
     }
 }

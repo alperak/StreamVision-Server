@@ -3,8 +3,8 @@
 FrameHandler::FrameHandler(const int port) : context_{ioThreadCount_}, serverSocket_{context_, zmq::socket_type::rep}, port_{port}
 {
     // Need Exception handling.
-    serverSocket_.bind("tcp://localhost:" + std::to_string(port_));
-    std::cout << "Successfully binded to localhost:" + std::to_string(port_) << '\n';
+    serverSocket_.bind("tcp://0.0.0.0:" + std::to_string(port_));
+    std::cout << "Successfully binded to 0.0.0.0:" + std::to_string(port_) << '\n';
 }
 
 FrameHandler::~FrameHandler()

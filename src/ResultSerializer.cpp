@@ -5,6 +5,7 @@ nlohmann::json ResultSerializer::toJson(const std::vector<Detection>& detections
     nlohmann::json detectionsJson;
     detectionsJson["detections"] = nlohmann::json::array();
 
+    // Serialize each detection to JSON format
     for (const auto& detection : detections) {
         detectionsJson["detections"].push_back({
             {"classId", detection.classId},

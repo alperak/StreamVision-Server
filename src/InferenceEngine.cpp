@@ -14,9 +14,14 @@ InferenceEngine::InferenceEngine(const std::string& onnxModelPath, const cv::Siz
     loadLabels();
 }
 
+InferenceEngine::~InferenceEngine()
+{
+    stop();
+}
+
 void InferenceEngine::start()
 {
-    if (isRunning_) { // Prevent multiple threads
+    if (isRunning_) {
         return;
     }
     isRunning_ = true;
@@ -26,7 +31,6 @@ void InferenceEngine::start()
 void InferenceEngine::stop()
 {
     isRunning_ = false;
-    // Should I add socket close or does zeromq handle it?
     if (inferenceThread_.joinable()) {
         inferenceThread_.join();
     }

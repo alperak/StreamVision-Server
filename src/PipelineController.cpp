@@ -20,6 +20,7 @@ void PipelineController::start()
         return;
     }
 
+    // Start all pipeline components
     frameHandler_.start();
     inferenceEngine_.start();
 
@@ -35,6 +36,7 @@ void PipelineController::stop()
         pipelineThread_.join();
     }
 
+    // Stop components in reverse order for clean shutdown
     inferenceEngine_.stop();
     frameHandler_.stop();
 }
@@ -42,12 +44,17 @@ void PipelineController::stop()
 void PipelineController::process()
 {
     while (isRunning_) {
+        // Get encoded frame from client
         auto encodedFrame = frameHandler_.getLatestFrame();
         if (!encodedFrame.empty()) {
+            // Decode JPEG frame
             auto decodedFrame = FrameDecoder::decodeJPEG(encodedFrame);
+            // Run inference
             inferenceEngine_.pushFrame(std::move(decodedFrame));
             auto detections = inferenceEngine_.getDetections();
+            // Serialize results to JSON
             auto detectionsAsJson = ResultSerializer::toJson(detections);
+            // Send results back to client
             frameHandler_.setFrameResult(detectionsAsJson);
         }
     }

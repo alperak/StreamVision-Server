@@ -6,6 +6,7 @@
 ![ZeroMQ](https://img.shields.io/badge/ZeroMQ-4.3.5-DF0000?style=for-the-badge&logoColor=white)
 ![cppzmq](https://img.shields.io/badge/cppzmq-4.11.0-DF0000?style=for-the-badge&logoColor=white)
 ![nlohmann-json](https://img.shields.io/badge/nlohmann--json-3.12.0-00599C?style=for-the-badge&logoColor=white)
+![TinyXML2](https://img.shields.io/badge/TinyXML2-11.0.0-00599C?style=for-the-badge&logoColor=white)
 ![YOLOv11](https://img.shields.io/badge/YOLO-v11/v12-00FFFF?style=for-the-badge)
 ![CMake](https://img.shields.io/badge/CMake-3.10+-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
@@ -37,6 +38,8 @@ StreamVision is a distributed object detection system consisting of two componen
 ---
 
 ## Architecture
+
+> **Note:** Application settings (Server Bind Address, Port, Model Configuration, Input Dimensions, Detection Thresholds, and Inference Target) are managed by `ConfigXML` singleton class, loaded once at startup.
 
 ```
 ┌─────────────────┐
@@ -72,6 +75,7 @@ StreamVision is a distributed object detection system consisting of two componen
 | [ZeroMQ (libzmq)](https://zeromq.org/) | 4.3.5 | High-performance asynchronous messaging library |
 | [cppzmq](https://github.com/zeromq/cppzmq) | 4.11.0 | Header-only C++ bindings for ZeroMQ |
 | [nlohmann/json](https://github.com/nlohmann/json) | 3.12.0 | Modern C++ JSON serialization |
+| [TinyXML2](https://github.com/leethomason/tinyxml2) | 11.0.0 | XML configuration parsing |
 | [Doxygen](https://www.doxygen.nl/) | Latest | API documentation generator (optional) |
 
 ---
@@ -88,10 +92,10 @@ git clone https://github.com/alperak/StreamVision-Server.git
 cd StreamVision-Server
 
 # Build Docker image
-docker build -t streamvision-server .
+sudo docker build -t streamvision-server .
 
 # Run container with GPU support
-docker run -it --rm \
+sudo docker run -it --rm \
   --gpus all \
   --network host \
   streamvision-server
@@ -107,15 +111,42 @@ For manual installation, follow the dependency build steps in the [`Dockerfile`]
 
 ### Quick Start
 
-1. **Run the server**:
+1. **Configure the application** by editing [config/config.xml](config/config.xml):
+
+```xml
+<Config>
+    <Model>
+        <Path>../model/yolo11s.onnx</Path>              <!-- ONNX model file path -->
+        <InputWidth>640</InputWidth>                    <!-- Model input width -->
+        <InputHeight>640</InputHeight>                  <!-- Model input height -->
+        <LabelsPath>../model/labels.txt</LabelsPath>    <!-- Class labels file path -->
+        <ScoreThreshold>0.45</ScoreThreshold>           <!-- Detection confidence threshold [0.0 - 1.0] -->
+        <NMSThreshold>0.50</NMSThreshold>               <!-- NMS threshold [0.0 - 1.0] -->
+        <!-- InferenceTarget: CPU or GPU -->
+        <InferenceTarget>GPU</InferenceTarget>          <!-- Inference execution target -->
+    </Model>
+    <Server>
+        <IP>0.0.0.0</IP>         <!-- Server bind IP address -->
+        <Port>5555</Port>        <!-- Server bind port number -->
+    </Server>
+</Config>
+```
+
+> **Note:** 
+> - If you don't configure, It will start with the current default values in the config.
+> - If changing server IP/port, update StreamVision-Client config accordingly.
+> - Adjust ScoreThreshold and NMSThreshold based on your detection accuracy requirements.
+> - Set InferenceTarget to CPU or GPU depending on your hardware availability.
+
+2. **Run the server**:
 
 ```bash
 ./streamvision-server
 ```
 
-2. **Start the client** (see [StreamVision-Client](https://github.com/alperak/StreamVision-Client) repository)
+3. **Start the client** (see [StreamVision-Client](https://github.com/alperak/StreamVision-Client) repository)
 
-3. **View the doxygen documentation** in your browser (Docker only):
+4. **View the doxygen documentation** in your browser (Docker only):
 
 ```
 http://localhost:8000

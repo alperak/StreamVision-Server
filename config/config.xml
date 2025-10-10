@@ -1,0 +1,16 @@
+<Config>
+    <Model>
+        <Path>../model/yolo11s.onnx</Path>
+        <InputWidth>640</InputWidth>
+        <InputHeight>640</InputHeight>
+        <LabelsPath>../model/labels.txt</LabelsPath>
+        <ScoreThreshold>0.45</ScoreThreshold>
+        <NMSThreshold>0.50</NMSThreshold>
+        <!-- InferenceTarget: CPU or GPU -->
+        <InferenceTarget>GPU</InferenceTarget>
+    </Model>
+    <Server>
+        <IP>0.0.0.0</IP>
+        <Port>5555</Port>
+    </Server>
+</Config>

@@ -20,15 +20,16 @@ if(CPPZMQ_INCLUDE_DIR)
 else()
     message(FATAL_ERROR "cppzmq not found!")
 endif()
+find_package(tinyxml2 REQUIRED)
 
 set(SOURCES
     src/main.cpp
     src/FrameDecoder.cpp
-    src/FrameReceiver.cpp
+    src/FrameHandler.cpp
     src/PipelineController.cpp
-    src/ResultSender.cpp
     src/ResultSerializer.cpp
     src/InferenceEngine.cpp
+    src/ConfigXML.cpp
 )
 
 add_executable(streamvision-server ${SOURCES})
@@ -46,6 +47,7 @@ target_link_libraries(streamvision-server
         ${OpenCV_LIBS}
         ${ZMQ_LIBRARIES}
         nlohmann_json::nlohmann_json
+        tinyxml2::tinyxml2
 )
 
 target_compile_options(streamvision-server PRIVATE

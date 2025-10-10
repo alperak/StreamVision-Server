@@ -5,5 +5,5 @@ cv::Mat FrameDecoder::decodeJPEG(const std::vector<uchar>& encodedFrame)
     if (encodedFrame.empty()) {
         return {};
     }
-    return cv::imdecode(encodedFrame, cv::IMREAD_COLOR);;
+    return cv::imdecode(encodedFrame, cv::IMREAD_COLOR);
 }

@@ -21,10 +21,9 @@ public:
     FrameDecoder& operator=(FrameDecoder&&) = delete;
 
     /**
-     * @brief Decodes JPEG encoded frame data to cv::Mat
+     * @brief Decodes a JPEG encoded frame to OpenCV Mat
      * @param encodedFrame JPEG encoded frame data as byte vector
-     * @return Decoded frame in BGR color format
-     * @throws std::runtime_error if decoding fails
+     * @return Decoded BGR frame or empty Mat if input is empty/invalid
      */
     static cv::Mat decodeJPEG(const std::vector<uchar>& encodedFrame);
 private:

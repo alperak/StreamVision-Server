@@ -12,13 +12,14 @@
 
 /**
  * @class FrameHandler
- * @brief Handles asynchronous encoded frame receiving and detection result sending via ZeroMQ
+ * @brief ZeroMQ based REQ-REP server for receiving frames and sending inference results
  *
- * Receives encoded frames from client and sends JSON formatted detection results
- * in a request-reply pattern. Runs in a separate thread
+ * Implements a server that:
+ *  - Receives JPEG-encoded frames from clients via ZeroMQ
+ *  - Stores the latest frame for processing
+ *  - Sends back JSON formatted inference results (with 1 frame latency)
  *
- * @note Uses ZeroMQ REP socket bound to tcp://0.0.0.0:5555 (default)
- * @warning Introduces 1-frame latency due to asynchronous processing
+ * @note Thread safe for concurrent access to frames and results
  */
 class FrameHandler {
 public:
@@ -55,14 +56,14 @@ public:
     void stop();
 
     /**
-     * @brief Retrieves the most recently received frame
-     * @return Copy of encoded frame data as byte vector
+     * @brief Retrieves and moves the most recently received frame
+     * @return Encoded frame data as byte vector (moved from internal buffer)
      */
-    std::vector<uchar> getLatestFrame() const;
+    std::vector<uchar> getLatestFrame();
 
     /**
-     * @brief Sets detection result to be sent in next response
-     * @param jsonResult JSON object containing detection data
+     * @brief Sets the inference result to be sent to client
+     * @param jsonResult JSON object containing detection results
      */
     void setFrameResult(const nlohmann::json& jsonResult);
 
@@ -82,7 +83,7 @@ private:
     std::atomic<bool> isRunning_{false};        ///< Thread state flag
 
     std::vector<uchar> latestFrame_{};          ///< Latest received frame buffer
-    mutable std::mutex frameMutex_;             ///< Protects frame buffer access
+    std::mutex frameMutex_;                     ///< Protects frame buffer access
 
     nlohmann::json latestJsonResult_;           ///< Latest detection result
     std::mutex jsonResultMutex_;                ///< Protects result data access

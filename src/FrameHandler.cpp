@@ -28,10 +28,10 @@ void FrameHandler::stop()
     }
 }
 
-std::vector<uchar> FrameHandler::getLatestFrame() const
+std::vector<uchar> FrameHandler::getLatestFrame()
 {
     std::lock_guard<std::mutex> lock(frameMutex_);
-    return latestFrame_;
+    return std::move(latestFrame_);
 }
 
 void FrameHandler::setFrameResult(const nlohmann::json& jsonResult) 

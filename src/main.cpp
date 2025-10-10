@@ -1,8 +1,12 @@
 #include "PipelineController.hpp"
+#include "ConfigXML.hpp"
 #include <condition_variable>
 
 int main()
 {
+    // Initialize configuration from config.xml
+    ConfigXML::getInstance().initialize();
+
     PipelineController pipeline;
     pipeline.start();
 

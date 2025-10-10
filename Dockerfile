@@ -87,6 +87,18 @@ RUN git clone https://github.com/nlohmann/json.git . && \
     ldconfig
 
 # -----------------------------
+# tinyxml2 11.0.0
+# -----------------------------
+WORKDIR /opt/tinyxml2
+RUN git clone https://github.com/leethomason/tinyxml2.git . && \
+    git checkout 11.0.0 && \
+    mkdir -p build && cd build && \
+    cmake .. && \
+    make -j$(nproc) && \
+    make install && \
+    ldconfig
+
+# -----------------------------
 # StreamVision-Server
 # -----------------------------
 COPY . /workspace/StreamVision-Server

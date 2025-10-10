@@ -1,13 +1,21 @@
 #include "InferenceEngine.hpp"
 
-InferenceEngine::InferenceEngine(const std::string& onnxModelPath, const cv::Size& modelInputSize,
-                                    const std::string& labelsPath, const InferenceThreshold& threshold,
-                                    const InferenceTarget target)
-    :
-    onnxModelPath_{onnxModelPath}, modelInputSize_{modelInputSize}, labelsPath_{labelsPath},
-    modelScoreThreshold_{threshold.modelScoreThreshold}, modelNMSThreshold_{threshold.modelNMSThreshold},
-    target_{target}
+InferenceEngine::InferenceEngine()
+    : onnxModelPath_{ConfigXML::getInstance().getModelPath()},
+      modelInputSize_{ConfigXML::getInstance().getModelInputWidth(), ConfigXML::getInstance().getModelInputHeight()},
+      labelsPath_{ConfigXML::getInstance().getLabelsPath()},
+      modelScoreThreshold_{ConfigXML::getInstance().getModelScoreThreshold()},
+      modelNMSThreshold_{ConfigXML::getInstance().getModelNMSThreshold()},
+      inferenceTarget_{ConfigXML::getInstance().getInferenceTarget() == "GPU" ? InferenceTarget::GPU : InferenceTarget::CPU}
 {
+    std::cout << "\n[InferenceEngine] - Configuration loaded:\n"
+            << "  Model Path        : " << onnxModelPath_ << '\n'
+            << "  Input Size        : " << modelInputSize_.width << "x" << modelInputSize_.height << '\n'
+            << "  Labels Path       : " << labelsPath_ << '\n'
+            << "  Score Threshold   : " << modelScoreThreshold_ << '\n'
+            << "  NMS Threshold     : " << modelNMSThreshold_ << '\n'
+            << "  Inference Target  : " << (inferenceTarget_ == InferenceTarget::GPU ? "GPU" : "CPU") << "\n\n";
+
     // Load model and set Inference Target GPU/CPU
     loadYoloONNX();
     // Load labels from file
@@ -53,10 +61,10 @@ void InferenceEngine::loadYoloONNX()
     // Read model using OpenCV DNN
     net_ = cv::dnn::readNetFromONNX(onnxModelPath_);
 
-    if (target_ == InferenceTarget::GPU) {
+    if (inferenceTarget_ == InferenceTarget::GPU) {
         net_.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
         net_.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
-    } else if (target_ == InferenceTarget::CPU) {
+    } else if (inferenceTarget_ == InferenceTarget::CPU) {
         net_.setPreferableBackend(cv::dnn::DNN_BACKEND_OPENCV);
         net_.setPreferableTarget(cv::dnn::DNN_TARGET_CPU);
     }

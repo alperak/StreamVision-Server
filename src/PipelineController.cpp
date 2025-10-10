@@ -1,17 +1,13 @@
 #include "PipelineController.hpp"
 
-PipelineController::PipelineController() :
-        frameHandler_{},
-        inferenceEngine_{"../model/yolo11s.onnx", cv::Size(640, 640), "../model/labels.txt",
-                        { .modelScoreThreshold = 0.45f, .modelNMSThreshold = 0.50f },
-                        InferenceTarget::GPU}
+PipelineController::PipelineController() : frameHandler_{}, inferenceEngine_{}
 {
 
 }
 
 PipelineController::~PipelineController()
 {
-    PipelineController::stop();
+    stop();
 }
 
 void PipelineController::start()

@@ -1,22 +1,13 @@
 #ifndef INFERENCEENGINE_HPP_
 #define INFERENCEENGINE_HPP_
 
+#include "ConfigXML.hpp"
 #include <thread>
 #include <atomic>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc.hpp>
 #include <fstream>
-
-/**
- * @struct InferenceThreshold
- * @brief Detection confidence and NMS threshold configuration
- */
-struct InferenceThreshold
-{
-    float modelScoreThreshold{};    ///< Minimum confidence score to consider detection [0.0 - 1.0]
-    float modelNMSThreshold{};      ///< NMS IoU threshold for overlapping box suppression [0.0 - 1.0]
-};
 
 /**
  * @struct Detection
@@ -71,32 +62,37 @@ enum class InferenceTarget
 
 /**
  * @class InferenceEngine
- * @brief Asynchronous YOLOv11/v12 object detection engine
+ * @brief Performs asynchronous object detection using YOLOV11/12 ONNX models with OpenCV DNN
  *
  * Performs object detection using ONNX format YOLOv11/12 models.
  * Runs inference in a separate thread with automatic letterbox padding
  * and NMS post processing.
+ *
+ * @note All configuration parameters are const and initialized from ConfigXML
+ * @note Requires ConfigXML to be initialized before InferenceEngine construction
  */
 class InferenceEngine {
 public:
-    InferenceEngine() = delete;
     InferenceEngine(const InferenceEngine&) = delete;
     InferenceEngine& operator=(const InferenceEngine&) = delete;
     InferenceEngine(InferenceEngine&&) = delete;
     InferenceEngine& operator=(InferenceEngine&&) = delete;
 
     /**
-     * @brief Constructor initializes the model with specified parameters
-     * @param onnxModelPath Path to the ONNX model file
-     * @param modelInputSize Model input size (640x640)
-     * @param labelsPath Path to text file containing labels
-     * @param threshold Detection thresholds for filtering
-     * @param target Inference target (CUDA(GPU) / CPU)
-     * @throws std::runtime_error if model or labels can not be loaded
+     * @brief Constructor - Initializes inference engine from ConfigXML
+     *
+     * Loads all configuration parameters from ConfigXML singleton:
+     *  - ONNX model path
+     *  - Model input dimensions (width/height)
+     *  - Class labels file path
+     *  - Detection score threshold
+     *  - NMS threshold
+     *  - Inference target (CPU/GPU)
+     *
+     * @throws std::runtime_error if model file cannot be loaded
+     * @throws std::runtime_error if labels file cannot be read
      */
-    explicit InferenceEngine(const std::string& onnxModelPath, const cv::Size& modelInputSize,
-                                const std::string& labelsPath, const InferenceThreshold& threshold,
-                                const InferenceTarget target);
+    InferenceEngine();
 
     /**
      * @brief Destructor - stops inference thread and releases resources
@@ -170,12 +166,12 @@ private:
     const std::string onnxModelPath_;               ///< Path to ONNX model
     const cv::Size modelInputSize_;                 ///< Model input dimensions
     const std::string labelsPath_;                  ///< Path to class labels
-    const float modelScoreThreshold_;               ///< Confidence threshold
+    const float modelScoreThreshold_;               ///< Minimum confidence threshold
     const float modelNMSThreshold_;                 ///< NMS IoU threshold
-    const InferenceTarget target_;                  ///< GPU/CPU backend
+    const InferenceTarget inferenceTarget_;         ///< GPU/CPU backend
 
-    std::vector<std::string> labelNames_{};         ///< COCO class names
-    cv::dnn::Net net_;                              ///< OpenCV DNN network
+    std::vector<std::string> labelNames_{};         ///< Loaded COCO label names
+    cv::dnn::Net net_;                              ///< OpenCV DNN network instance
 
     static constexpr int kCocoNumLabels{80};        ///< Expected COCO label count
     static constexpr int kOutputDim{84};            ///< YOLO output features (4 bbox + 80 classes)

@@ -1,6 +1,7 @@
 #ifndef FRAMEHANDLER_HPP_
 #define FRAMEHANDLER_HPP_
 
+#include "ConfigXML.hpp"
 #include <iostream>
 #include <thread>
 #include <mutex>
@@ -19,6 +20,8 @@
  *  - Stores the latest frame for processing
  *  - Sends back JSON formatted inference results (with 1 frame latency)
  *
+ * Server bind address and port are loaded from ConfigXML
+ *
  * @note Thread safe for concurrent access to frames and results
  */
 class FrameHandler {
@@ -29,15 +32,10 @@ public:
     FrameHandler& operator=(FrameHandler&&) = delete;
 
     /**
-     * @brief Constructor - initializes ZeroMQ context and binds to specified port
-     * @param port TCP port number to bind server socket
+     * @brief Constructor - initializes ZeroMQ context and binds to address from ConfigXML
+     * @note Loads bind IP and port from ConfigXML singleton
      */
-    explicit FrameHandler(int port);
-
-    /**
-     * @brief Default constructor - uses default port 5555
-     */
-    FrameHandler() : FrameHandler(kDefaultPort) {}
+    FrameHandler();
 
     /**
      * @brief Destructor - stops communication and releases resources
@@ -76,8 +74,6 @@ private:
     zmq::context_t context_;                    ///< ZeroMQ context
     static constexpr int ioThreadCount_{1};     ///< I/O threads for ZeroMQ context
     zmq::socket_t serverSocket_;                ///< REP socket for client communication
-    static constexpr int kDefaultPort{5555};    ///< Default server port
-    int port_;                                  ///< Actual bound port
 
     std::thread handleThread_;                  ///< Background receive-send thread
     std::atomic<bool> isRunning_{false};        ///< Thread state flag

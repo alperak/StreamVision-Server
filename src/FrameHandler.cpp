@@ -1,9 +1,15 @@
 #include "FrameHandler.hpp"
 
-FrameHandler::FrameHandler(const int port) : context_{ioThreadCount_}, serverSocket_{context_, zmq::socket_type::rep}, port_{port}
+FrameHandler::FrameHandler() : context_{ioThreadCount_}, serverSocket_{context_, zmq::socket_type::rep}
 {
-    serverSocket_.bind("tcp://0.0.0.0:" + std::to_string(port_));
-    std::cout << "Successfully binded to 0.0.0.0:" + std::to_string(port_) << '\n';
+    const auto& config = ConfigXML::getInstance();
+    const std::string endpoint = "tcp://" + config.getServerIP() + ":" + std::to_string(config.getServerPort());
+    serverSocket_.bind(endpoint);
+
+    std::cout << "\n[FrameHandler] - Server started successfully\n"
+          << "  Listening on     : " << endpoint << "\n"
+          << "  Socket type      : REQ-REP (ZeroMQ)\n"
+          << "  Waiting for client connection...\n";
 }
 
 FrameHandler::~FrameHandler()

@@ -49,13 +49,15 @@ void PipelineController::process()
         if (!encodedFrame.empty()) {
             // Decode JPEG frame
             auto decodedFrame = FrameDecoder::decodeJPEG(encodedFrame);
-            // Run inference
-            inferenceEngine_.pushFrame(std::move(decodedFrame));
-            auto detections = inferenceEngine_.getDetections();
-            // Serialize results to JSON
-            auto detectionsAsJson = ResultSerializer::toJson(detections);
-            // Send results back to client
-            frameHandler_.setFrameResult(detectionsAsJson);
+            if (!decodedFrame.empty()) {
+                // Run inference
+                inferenceEngine_.pushFrame(std::move(decodedFrame));
+                auto detections = inferenceEngine_.getDetections();
+                // Serialize results to JSON
+                auto detectionsAsJson = ResultSerializer::toJson(detections);
+                // Send results back to client
+                frameHandler_.setFrameResult(detectionsAsJson);
+            }
         }
     }
 }

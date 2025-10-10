@@ -14,7 +14,13 @@
  * Manages the complete lifecycle of all pipeline components.
  *
  * Pipeline flow:
- * Receive Encoded Frame -> Decode -> Inference (YOLO) -> Serialize -> Send Result
+ * 1. Receive encoded frame from client (FrameHandler::getLatestFrame)
+ * 2. Decode JPEG to cv::Mat (FrameDecoder::decodeJPEG)
+ * 3. Validate decoded frame (skip if empty/invalid)
+ * 4. Run YOLO inference (InferenceEngine::pushFrame)
+ * 5. Retrieve detections (InferenceEngine::getDetections)
+ * 6. Serialize to JSON (ResultSerializer::toJson)
+ * 7. Send results back to client (FrameHandler::setFrameResult)
  */
 class PipelineController {
 public:

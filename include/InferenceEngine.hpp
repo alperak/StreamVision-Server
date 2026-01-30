@@ -2,35 +2,14 @@
 #define INFERENCEENGINE_HPP_
 
 #include "ConfigXML.hpp"
+#include "DetectionTypes.hpp"
+
 #include <thread>
 #include <atomic>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc.hpp>
 #include <fstream>
-
-/**
- * @struct Detection
- * @brief Holds complete information about a single detected object
- */
-struct Detection
-{
-    int classId{};              ///< Class identifier (0-79 for COCO)
-    std::string className{};    ///< Readable class name
-    float confidence{};         ///< Detection confidence score [0.0 - 1.0]
-    cv::Rect boundingBox{};     ///< Bounding box in original frame coordinates
-
-    /**
-     * @brief Constructs a detection object
-     * @param id Class identifier
-     * @param name Class name
-     * @param conf Confidence score
-     * @param bbox Bounding box rectangle
-     */
-    Detection(const int id, const std::string& name, const float conf, const cv::Rect& bbox)
-        :   classId(id), className(name), confidence(conf),
-            boundingBox(bbox) {}
-};
 
 /**
  * @struct PaddingInfo

@@ -25,7 +25,6 @@ find_package(tinyxml2 REQUIRED)
 set(SOURCES
     src/main.cpp
     src/FrameDecoder.cpp
-    src/FrameHandler.cpp
     src/PipelineController.cpp
     src/ResultSerializer.cpp
     src/InferenceEngine.cpp

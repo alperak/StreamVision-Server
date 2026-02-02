@@ -1,66 +1,57 @@
 #ifndef PIPELINECONTROLLER_HPP_
 #define PIPELINECONTROLLER_HPP_
 
-#include "FrameHandler.hpp"
+#include "NetworkManager.hpp"
 #include "InferenceEngine.hpp"
-#include "FrameDecoder.hpp"
-#include "ResultSerializer.hpp"
+#include "ThreadPool.hpp"
+
+#include <memory>
 
 /**
  * @class PipelineController
  * @brief Orchestrates the complete detection server pipeline
  *
- * Coordinates frame receiving, decoding, inference, serialization, and result sending.
- * Manages the complete lifecycle of all pipeline components.
+ * Callback driven pipeline that connects NetworkManager, ThreadPool,
+ * and InferenceEngine. No dedicated pipeline thread, the processing
+ * is driven by NetworkManager's I/O thread invoking the request handler,
+ * which dispatches work to the ThreadPool.
  *
- * Pipeline flow:
- * 1. Receive encoded frame from client (FrameHandler::getLatestFrame)
- * 2. Decode JPEG to cv::Mat (FrameDecoder::decodeJPEG)
- * 3. Validate decoded frame (skip if empty/invalid)
- * 4. Run YOLO inference (InferenceEngine::pushFrame)
- * 5. Retrieve detections (InferenceEngine::getDetections)
- * 6. Serialize to JSON (ResultSerializer::toJson)
- * 7. Send results back to client (FrameHandler::setFrameResult)
+ * Pipeline flow (per client request):
+ * 1. NetworkManager I/O thread receives frame, calls requestHandler_
+ * 2. requestHandler_ submits a task to ThreadPool
+ * 3. ThreadPool worker: decode JPEG -> submit InferenceTask -> future.get()
+ * 4. ThreadPool worker: serialize detections -> enqueueResponse()
+ * 5. NetworkManager I/O thread sends response back to client
  */
 class PipelineController {
 public:
+    PipelineController();
+    ~PipelineController();
     PipelineController(const PipelineController&) = delete;
-    PipelineController& operator= (const PipelineController&) = delete;
+    PipelineController& operator=(const PipelineController&) = delete;
     PipelineController(PipelineController&&) = delete;
     PipelineController& operator=(PipelineController&&) = delete;
 
     /**
-     * @brief Constructor - initializes all pipeline components with default configuration
-     */
-    PipelineController();
-
-    /**
-     * @brief Destructor - stops pipeline and releases resources
-     */
-    ~PipelineController();
-
-    /**
-     * @brief Starts all pipeline components and processing thread
+     * @brief Registers the request handler callback and starts all components
      */
     void start();
 
     /**
-     * @brief Stops all pipeline components and processing thread
-     * @note Blocks until all components terminate gracefully
+     * @brief Stops all components in correct order
+     *
+     * NetworkManager, stop accepting new requests
+     * ThreadPool, drain existing work
+     * InferenceEngine, no more tasks to process
      */
     void stop();
 
 private:
-    /**
-     * @brief Main processing loop coordinating all pipeline stages
-     */
-    void process();
+    static constexpr std::size_t kDefaultWorkerCount{4};
 
-    std::thread pipelineThread_;            ///< Pipeline thread
-    std::atomic<bool> isRunning_{false};    ///< Pipeline thread state flag
-
-    FrameHandler frameHandler_;             ///< ZeroMQ frame receiver, result sender
-    InferenceEngine inferenceEngine_;       ///< YOLO object detection engine
+    std::unique_ptr<InferenceEngine> inferenceEngine_;
+    std::unique_ptr<ThreadPool> threadPool_;
+    std::unique_ptr<NetworkManager> networkManager_;
 };
 
 #endif

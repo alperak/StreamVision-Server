@@ -1,20 +1,5 @@
 # StreamVision-Server
 
-![C++](https://img.shields.io/badge/C%2B%2B-00599C?style=for-the-badge&logo=c%2B%2B&logoColor=white)
-![OpenCV](https://img.shields.io/badge/OpenCV-4.12.0-5C3EE8?style=for-the-badge&logo=opencv&logoColor=white)
-![CUDA](https://img.shields.io/badge/CUDA-12.9.1-76B900?style=for-the-badge&logo=nvidia&logoColor=white)
-![ZeroMQ](https://img.shields.io/badge/ZeroMQ-4.3.5-DF0000?style=for-the-badge&logoColor=white)
-![cppzmq](https://img.shields.io/badge/cppzmq-4.11.0-DF0000?style=for-the-badge&logoColor=white)
-![nlohmann-json](https://img.shields.io/badge/nlohmann--json-3.12.0-00599C?style=for-the-badge&logoColor=white)
-![TinyXML2](https://img.shields.io/badge/TinyXML2-11.0.0-00599C?style=for-the-badge&logoColor=white)
-![YOLOv11](https://img.shields.io/badge/YOLO-v11/v12-00FFFF?style=for-the-badge)
-![CMake](https://img.shields.io/badge/CMake-3.10+-064F8C?style=for-the-badge&logo=cmake&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Doxygen](https://img.shields.io/badge/Docs-Doxygen-2C4AA8?style=for-the-badge&logo=doxygen&logoColor=white)
-![Linux](https://img.shields.io/badge/Linux-Ubuntu_24.04-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)
-
----
-
 ## Table of Contents
 
 - [Project Overview](#overview)
@@ -30,10 +15,10 @@
 
 ## Overview
 
-StreamVision is a distributed object detection system consisting of two components:
+StreamVision is a distributed real time object detection system consisting of two components:
 
-- **StreamVision-Server** (this repository): C++ application that receives encoded frames, decodes them, runs YOLOv11/v12 inference with GPU acceleration, and returns detection results to client.
-- **[StreamVision-Client](https://github.com/alperak/StreamVision-Client)** (separate repository): C++ application that captures camera frames, sends them to a detection server, receives results, draws bounding boxes on frames, and displays live video stream in web browsers.
+- **StreamVision-Server** (this repository): Multi-client C++ detection server built on ZeroMQ ROUTER-DEALER pattern. Receives JPEG encoded frames from multiple clients simultaneously, dispatches them to a thread pool for decoding, runs YOLOv11/v12 inference with GPU acceleration via a queue based inference engine and returns JSON detection results back to each client.
+- **[StreamVision-Client](https://github.com/alperak/StreamVision-Client)** (separate repository): C++ application that captures camera frames, sends them to the detection server, receives results, draws bounding boxes on frames, and displays live video stream in web browsers.
 
 ---
 
@@ -42,25 +27,36 @@ StreamVision is a distributed object detection system consisting of two componen
 > **Note:** Application settings (Server Bind Address, Port, Model Configuration, Input Dimensions, Detection Thresholds, and Inference Target) are managed by `ConfigXML` singleton class, loaded once at startup.
 
 ```
-┌─────────────────┐
-│ FrameHandler    │ → Receives encoded frames/sends results via ZeroMQ (REP socket)
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ FrameDecoder    │ → Decodes JPEG frames
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ InferenceEngine │ → YOLOv11/v12 object detection (GPU/CPU)
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ ResultSerializer│ → Converts detections to JSON
-└────────┬────────┘
-         ↓
-┌─────────────────┐
-│ FrameHandler    │ → Sends JSON results back to client
-└─────────────────┘
+Client (DEALER)
+  1. Sends JPEG frame
+        │
+        v
+NetworkManager (ROUTER)
+  2. Receives packet on I/O thread
+        │
+        │  callback (RequestHandler)
+        v
+PipelineController
+  3. Validates & routes frame
+        │
+        v
+ThreadPool (N workers)
+  4. FrameDecoder::decodeJPEG()
+        │
+        v
+InferenceEngine
+  5. Async inference (queue + promise/future)
+        │
+        v
+ResultSerializer
+  6. toJson()
+        │
+        v
+NetworkManager
+  7. enqueueResponse() -> I/O thread sends reply 
+        │
+        v
+Client receives JSON detections
 ```
 
 ---
@@ -75,6 +71,7 @@ StreamVision is a distributed object detection system consisting of two componen
 | [ZeroMQ (libzmq)](https://zeromq.org/) | 4.3.5 | High-performance asynchronous messaging library |
 | [cppzmq](https://github.com/zeromq/cppzmq) | 4.11.0 | Header-only C++ bindings for ZeroMQ |
 | [nlohmann/json](https://github.com/nlohmann/json) | 3.12.0 | Modern C++ JSON serialization |
+| [spdlog](https://github.com/gabime/spdlog) | v1.17.0 | Fast C++ logging library |
 | [TinyXML2](https://github.com/leethomason/tinyxml2) | 11.0.0 | XML configuration parsing |
 | [Doxygen](https://www.doxygen.nl/) | Latest | API documentation generator (optional) |
 

@@ -21,14 +21,14 @@ else()
     message(FATAL_ERROR "cppzmq not found!")
 endif()
 find_package(tinyxml2 REQUIRED)
+find_package(spdlog REQUIRED)
 
 set(SOURCES
     src/main.cpp
-    src/FrameDecoder.cpp
     src/PipelineController.cpp
-    src/ResultSerializer.cpp
     src/InferenceEngine.cpp
     src/ConfigXML.cpp
+    src/NetworkManager.cpp
 )
 
 add_executable(streamvision-server ${SOURCES})
@@ -47,6 +47,7 @@ target_link_libraries(streamvision-server
         ${ZMQ_LIBRARIES}
         nlohmann_json::nlohmann_json
         tinyxml2::tinyxml2
+        spdlog::spdlog
 )
 
 target_compile_options(streamvision-server PRIVATE

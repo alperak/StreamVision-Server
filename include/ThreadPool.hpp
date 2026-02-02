@@ -32,7 +32,7 @@ public:
         const std::size_t count = std::max(threadCount, std::size_t{1});
         workers_.reserve(count);
 
-        spdlog::debug("ThreadPool::ThreadPool() - Creating {} worker threads", count);
+        spdlog::debug("[ThreadPool] - Creating {} worker threads", count);
 
         for (std::size_t i = 0; i < count; ++i) {
             workers_.emplace_back([this] { workerLoop(); });
@@ -112,8 +112,8 @@ private:
      *
      * Continuously pops tasks from the queue and executes them.
      * Exits when poison pill (empty function) is received.
-     * Catches all exceptions thrown by tasks are caught to prevent
-     * worker thread termination and crash.
+     * All exceptions thrown by tasks are caught to prevent
+     * worker thread termination.
      */
     void workerLoop() {
         while (true) {
@@ -121,7 +121,7 @@ private:
 
             // Check for poison pill (empty function = shutdown signal)
             if (!task) {
-                spdlog::debug("ThreadPool::workerLoop() - Worker thread exiting");
+                spdlog::debug("[ThreadPool] - Worker thread exiting");
                 return;
             }
 
@@ -129,10 +129,10 @@ private:
                 task();
             } catch (const std::exception& e) {
                 // Catch standard exceptions
-                spdlog::error("ThreadPool::workerLoop() - Task exception: {}", e.what());
+                spdlog::error("[ThreadPool] - Task exception: {}", e.what());
             } catch (...) {
                 // Catch all other exceptions
-                spdlog::error("ThreadPool::workerLoop() - Task unknown exception");
+                spdlog::error("[ThreadPool] - Task unknown exception");
             }
         }
     }

@@ -11,8 +11,6 @@
 #include <optional>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/mat.hpp>
-#include <opencv2/imgproc.hpp>
-#include <fstream>
 
 /**
  * @struct PaddingInfo

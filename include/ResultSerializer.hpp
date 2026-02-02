@@ -60,8 +60,6 @@ public:
         }
         return detectionsJson;
     }
-
-private:
 };
 
 #endif

@@ -6,6 +6,14 @@
 #include <vector>
 #include <opencv2/core/mat.hpp>
 
+/**
+ * @struct InferenceTask
+ * @brief Pairs a decoded frame with a promise for detection results
+ *
+ * Move only type submitted to InferenceEngine's task queue.
+ * The engine processes the frame and fulfills the promise with
+ * detection results, allowing the submitter to block on the future.
+ */
 struct InferenceTask {
     InferenceTask() = default;
     ~InferenceTask() = default;
@@ -18,7 +26,7 @@ struct InferenceTask {
     InferenceTask(InferenceTask&&) = default;
     InferenceTask& operator=(InferenceTask&&) = default;
 
-    cv::Mat frame;
-    std::promise<std::vector<Detection>> resultPromise;
+    cv::Mat frame;                                          ///< Decoded frame for inference
+    std::promise<std::vector<Detection>> resultPromise;     ///< Promise fulfilled with detection results
 };
 #endif

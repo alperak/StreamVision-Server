@@ -81,7 +81,7 @@ public:
     }
 
     /**
-     * @brief Returns the current number of elemens in the queue.
+     * @brief Returns the current number of elements in the queue.
      *
      * The result is only accurate, if no other thread modifies the queue.
      * Therefore it is rarely practical to use this value in program logic.

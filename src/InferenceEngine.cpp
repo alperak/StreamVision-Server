@@ -1,5 +1,7 @@
 #include "InferenceEngine.hpp"
 
+#include <fstream>
+#include <opencv2/imgproc.hpp>
 #include <spdlog/spdlog.h>
 
 InferenceEngine::InferenceEngine()

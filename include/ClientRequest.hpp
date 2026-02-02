@@ -5,6 +5,13 @@
 #include <vector>
 #include <opencv2/core/hal/interface.h> //uchar
 
+/**
+ * @brief Encapsulates a single client request received over ZeroMQ
+ *
+ * Move only type that pairs a ROUTER socket identity with the raw
+ * JPEG encoded frame payload. Consumed by PipelineController's
+ * request handler callback.
+ */
 struct ClientRequest {
     ClientRequest() = default;
     ~ClientRequest() = default;
@@ -17,7 +24,7 @@ struct ClientRequest {
     ClientRequest(ClientRequest&&) = default;
     ClientRequest& operator=(ClientRequest&&) = default;
 
-    std::string clientId;               // ROUTER identity
-    std::vector<uchar> encodedFrame;    // JPEG bytes
+    std::string clientId;               ///< ZeroMQ ROUTER identity
+    std::vector<uchar> encodedFrame;    ///< Raw JPEG encoded bytes
 };
 #endif

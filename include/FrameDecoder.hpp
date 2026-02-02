@@ -37,9 +37,6 @@ public:
 
         return frame;
     }
-
-private:
-
 };
 
 #endif

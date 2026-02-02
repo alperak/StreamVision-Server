@@ -11,11 +11,11 @@ NetworkManager::NetworkManager()
 
     try {
         // send() to an unknown identity throws instead of silently dropping the message.
-        routerSocket_.setsockopt(ZMQ_ROUTER_MANDATORY, 1);
+        routerSocket_.set(zmq::sockopt::router_mandatory, 1);
 
         // Drop all unsent messages immediately on socket close.
-        // zmq_close() would block waiting for delivery Without this.
-        routerSocket_.setsockopt(ZMQ_LINGER, 0);
+        // zmq_close() would block waiting for delivery without this.
+        routerSocket_.set(zmq::sockopt::linger, 0);
 
         routerSocket_.bind(endpoint);
     } catch (const zmq::error_t& e) {

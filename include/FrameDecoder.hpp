@@ -2,6 +2,7 @@
 #define FRAMEDECODER_HPP_
 
 #include <vector>
+#include <optional>
 #include <opencv2/imgcodecs.hpp>
 
 /**
@@ -25,8 +26,17 @@ public:
      * @param encodedFrame JPEG encoded frame data as byte vector
      * @return Decoded BGR frame or empty Mat if input is empty/invalid
      */
-    static cv::Mat decodeJPEG(const std::vector<uchar>& encodedFrame);
-private:
+    inline static std::optional<cv::Mat> decodeJPEG(const std::vector<uchar>& encodedFrame) {
+
+        if (encodedFrame.empty())
+            return std::nullopt;
+
+        cv::Mat frame = cv::imdecode(encodedFrame, cv::IMREAD_COLOR);
+        if (frame.empty())
+            return std::nullopt;
+
+        return frame;
+    }
 };
 
 #endif

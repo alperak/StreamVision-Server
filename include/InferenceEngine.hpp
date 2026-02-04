@@ -2,35 +2,15 @@
 #define INFERENCEENGINE_HPP_
 
 #include "ConfigXML.hpp"
+#include "DetectionTypes.hpp"
+#include "InferenceTask.hpp"
+#include "ThreadSafeQueue.hpp"
+
 #include <thread>
 #include <atomic>
+#include <optional>
 #include <opencv2/dnn.hpp>
 #include <opencv2/core/mat.hpp>
-#include <opencv2/imgproc.hpp>
-#include <fstream>
-
-/**
- * @struct Detection
- * @brief Holds complete information about a single detected object
- */
-struct Detection
-{
-    int classId{};              ///< Class identifier (0-79 for COCO)
-    std::string className{};    ///< Readable class name
-    float confidence{};         ///< Detection confidence score [0.0 - 1.0]
-    cv::Rect boundingBox{};     ///< Bounding box in original frame coordinates
-
-    /**
-     * @brief Constructs a detection object
-     * @param id Class identifier
-     * @param name Class name
-     * @param conf Confidence score
-     * @param bbox Bounding box rectangle
-     */
-    Detection(const int id, const std::string& name, const float conf, const cv::Rect& bbox)
-        :   classId(id), className(name), confidence(conf),
-            boundingBox(bbox) {}
-};
 
 /**
  * @struct PaddingInfo
@@ -62,14 +42,16 @@ enum class InferenceTarget
 
 /**
  * @class InferenceEngine
- * @brief Performs asynchronous object detection using YOLOV11/12 ONNX models with OpenCV DNN
+ * @brief Queue based object detection engine using YOLOv11/12 ONNX models with OpenCV DNN
  *
- * Performs object detection using ONNX format YOLOv11/12 models.
- * Runs inference in a separate thread with automatic letterbox padding
- * and NMS post processing.
+ * Accepts InferenceTask objects via a ThreadSafeQueue. Each task contains a frame
+ * and a std::promise that is fulfilled with detection results. Runs a single
+ * inference thread (cv::dnn::Net is not thread safe) that blocks on the queue
+ * and processes tasks sequentially.
  *
  * @note All configuration parameters are const and initialized from ConfigXML
  * @note Requires ConfigXML to be initialized before InferenceEngine construction
+ * @note Shutdown via poison pill (std::nullopt) through the task queue
  */
 class InferenceEngine {
 public:
@@ -100,32 +82,33 @@ public:
     ~InferenceEngine();
 
     /**
-     * @brief Starts asynchronous inference thread
+     * @brief Starts the inference processing thread
      */
     void start();
 
     /**
-     * @brief Stops inference thread
-     * @note Blocks until inference thread terminates
+     * @brief Stops the inference thread via poison pill
+     *
+     * Pushes std::nullopt to the task queue to unblock and terminate
+     * the processing thread. Blocks until the thread joins.
      */
     void stop();
 
     /**
-     * @brief Submits a frame for inference
-     * @param frame Input frame (moved)
+     * @brief Submits an inference task to the processing queue
+     *
+     * Thread-safe. The task's promise will be fulfilled with detection results
+     * when inference completes. If the engine is stopped, the promise is
+     * immediately fulfilled with an empty vector.
+     *
+     * @param task InferenceTask containing frame and result promise
      */
-    void pushFrame(cv::Mat&& frame);
-
-    /**
-     * @brief Retrieves the latest detection results
-     * @return Vector of detections from most recent inference
-     */
-    std::vector<Detection> getDetections() const;
+    void submitTask(InferenceTask task);
 
 private:
     /**
      * @brief Initializes model with specified backend
-     * @throws cv::Exception if model file is invalid
+     * @throws std::runtime_error if model file cannot be loaded
      */
     void loadYoloONNX();
 
@@ -149,19 +132,28 @@ private:
     PaddingInfo letterboxPadding(const cv::Mat& frame) const;
 
     /**
-     * @brief Main inference loop running in separate thread
-     * @note Processes frames continuously with letterbox, inference, and NMS
+     * @brief Main task-processing loop running in the inference thread
+     *
+     * Blocks on queue pop() waiting for tasks. Processes each task by running
+     * inference and fulfilling the promise. Exits on poison pill (nullopt).
      */
-    void runInference();
+    void processTaskQueue();
 
-    std::thread inferenceThread_;                   ///< Background inference thread
-    std::atomic<bool> isRunning_{false};            ///< Thread state flag
+    /**
+     * @brief Runs inference on a single frame
+     *
+     * Performs letterbox padding, blob conversion, DNN forward pass,
+     * output parsing, and NMS post-processing.
+     *
+     * @param frame Input frame to process
+     * @return Detections found in the frame, or std::nullopt if frame is empty or output is invalid
+     */
+    std::optional<std::vector<Detection>> processFrame(const cv::Mat& frame);
 
-    std::mutex frameMutex_;                         ///< Protects input frame
-    cv::Mat latestFrame_;                           ///< Latest frame for inference
+    std::thread inferenceThread_;
+    std::atomic<bool> isRunning_{false};
 
-    mutable std::mutex resultMutex_;                ///< Protects detection results
-    std::vector<Detection> latestDetections_;       ///< Latest inference results
+    ThreadSafeQueue<std::optional<InferenceTask>> taskQueue_;
 
     const std::string onnxModelPath_;               ///< Path to ONNX model
     const cv::Size modelInputSize_;                 ///< Model input dimensions

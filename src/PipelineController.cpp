@@ -1,8 +1,16 @@
 #include "PipelineController.hpp"
+#include "FrameDecoder.hpp"
+#include "ResultSerializer.hpp"
+#include "InferenceTask.hpp"
 
-PipelineController::PipelineController() : frameHandler_{}, inferenceEngine_{}
+#include <spdlog/spdlog.h>
+
+PipelineController::PipelineController()
+    : inferenceEngine_(std::make_unique<InferenceEngine>()),
+      threadPool_(std::make_unique<ThreadPool>(kDefaultWorkerCount)),
+      networkManager_(std::make_unique<NetworkManager>())
 {
-
+    spdlog::info("[PipelineController] - Initialized with {} worker threads", kDefaultWorkerCount);
 }
 
 PipelineController::~PipelineController()
@@ -12,48 +20,37 @@ PipelineController::~PipelineController()
 
 void PipelineController::start()
 {
-    if (isRunning_) {
-        return;
-    }
+    networkManager_->setRequestHandler([this](ClientRequest request) {
+        threadPool_->submit([this,
+                             clientId = std::move(request.clientId),
+                             encodedFrame = std::move(request.encodedFrame)]() {
+            // Decode JPEG
+            auto frame = FrameDecoder::decodeJPEG(encodedFrame);
+            if (!frame)
+                return;
 
-    // Start all pipeline components
-    frameHandler_.start();
-    inferenceEngine_.start();
+            // Submit inference task (promise/future)
+            std::promise<std::vector<Detection>> promise;
+            auto future = promise.get_future();
+            inferenceEngine_->submitTask(InferenceTask(std::move(*frame), std::move(promise)));
 
-    isRunning_ = true;
-    pipelineThread_ = std::thread(&PipelineController::process, this);
+            // Wait for result, serialize, respond
+            auto detections = future.get();
+            auto json = ResultSerializer::toJson(detections);
+            networkManager_->enqueueResponse(clientId, json.dump());
+        });
+    });
+
+    inferenceEngine_->start();
+    networkManager_->start();
+
+    spdlog::info("[PipelineController] - Pipeline started");
 }
 
 void PipelineController::stop()
 {
-    isRunning_ = false;
-
-    if (pipelineThread_.joinable()) {
-        pipelineThread_.join();
-    }
-
-    // Stop components in reverse order for clean shutdown
-    inferenceEngine_.stop();
-    frameHandler_.stop();
-}
-
-void PipelineController::process()
-{
-    while (isRunning_) {
-        // Get encoded frame from client
-        auto encodedFrame = frameHandler_.getLatestFrame();
-        if (!encodedFrame.empty()) {
-            // Decode JPEG frame
-            auto decodedFrame = FrameDecoder::decodeJPEG(encodedFrame);
-            if (!decodedFrame.empty()) {
-                // Run inference
-                inferenceEngine_.pushFrame(std::move(decodedFrame));
-                auto detections = inferenceEngine_.getDetections();
-                // Serialize results to JSON
-                auto detectionsAsJson = ResultSerializer::toJson(detections);
-                // Send results back to client
-                frameHandler_.setFrameResult(detectionsAsJson);
-            }
-        }
-    }
+    networkManager_->stop();
+    threadPool_->shutdown();
+    inferenceEngine_->stop();
+    spdlog::info("[PipelineController] - Pipeline stopped");
 }

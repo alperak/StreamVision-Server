@@ -1,5 +1,9 @@
 #include "ConfigXML.hpp"
 
+#include <sstream>
+#include <iomanip>
+#include <spdlog/spdlog.h>
+
 ConfigXML& ConfigXML::getInstance()
 {
     static ConfigXML instance;
@@ -19,7 +23,7 @@ void ConfigXML::load()
 
     // Check if config.xml exists
     if (!std::filesystem::exists(kconfigPath_)) {
-        std::cerr << "[ConfigXML] - File not found: " << kconfigPath_  << ". Creating with default values.\n";
+        spdlog::warn("[ConfigXML] - File not found: {}. Creating with default values.", kconfigPath_);
         save();
         return;
     }
@@ -27,7 +31,7 @@ void ConfigXML::load()
     // Try to load config.xml
     tinyxml2::XMLDocument doc;
     if (doc.LoadFile(kconfigPath_.c_str()) != tinyxml2::XML_SUCCESS) {
-        std::cerr << "[ConfigXML] - XML parsing error. Defaults will be used.\n";
+        spdlog::warn("[ConfigXML] - XML parsing error. Defaults will be used.");
         save();
         return;
     }
@@ -35,8 +39,7 @@ void ConfigXML::load()
     // Verify root element exists
     tinyxml2::XMLElement* rootElem = doc.FirstChildElement("Config");
     if (!rootElem) {
-        std::cerr << "[ConfigXML] - Invalid XML format (root missing). "
-                  << "Defaults will be used.\n";
+        spdlog::warn("[ConfigXML] - Invalid XML format (root missing). Defaults will be used.");
         save();
         return;
     }
@@ -170,9 +173,9 @@ void ConfigXML::save() const
     // Write to file
     tinyxml2::XMLError result = doc.SaveFile(kconfigPath_.c_str());
     if (result != tinyxml2::XML_SUCCESS) {
-        std::cerr << "[ConfigXML] - config.xml could not be saved (" << result << ").\n";
+        spdlog::error("[ConfigXML] - config.xml could not be saved (error code: {})", static_cast<int>(result));
     } else {
-        std::cout << "[ConfigXML] - Settings saved: " << kconfigPath_ << '\n';
+        spdlog::info("[ConfigXML] - Settings saved: {}", kconfigPath_);
     }
 }
 
@@ -192,20 +195,18 @@ void ConfigXML::setDefaults() noexcept
 
 void ConfigXML::printCurrentConfig() const noexcept
 {
-    std::cout << "[ConfigXML] - Final Configuration Loaded:\n";
-
-    std::cout << "  Model:\n"
-            << "    Path              : " << modelPath_              << '\n'
-            << "    Input Width       : " << modelInputWidth_        << '\n'
-            << "    Input Height      : " << modelInputHeight_       << '\n'
-            << "    Labels Path       : " << labelsPath_             << '\n'
-            << "    Score Threshold   : " << modelScoreThreshold_    << '\n'
-            << "    NMS Threshold     : " << modelNMSThreshold_      << '\n'
-            << "    Inference Target  : " << inferenceTarget_        << "\n\n";
-
-    std::cout << "  Server:\n"
-            << "    IP     : " << serverIP_     << '\n'
-            << "    Port   : " << serverPort_   << '\n';
+    spdlog::info("[ConfigXML] - Final Configuration Loaded:");
+    spdlog::info("  Model:");
+    spdlog::info("    Path              : {}", modelPath_);
+    spdlog::info("    Input Width       : {}", modelInputWidth_);
+    spdlog::info("    Input Height      : {}", modelInputHeight_);
+    spdlog::info("    Labels Path       : {}", labelsPath_);
+    spdlog::info("    Score Threshold   : {}", modelScoreThreshold_);
+    spdlog::info("    NMS Threshold     : {}", modelNMSThreshold_);
+    spdlog::info("    Inference Target  : {}", inferenceTarget_);
+    spdlog::info("  Server:");
+    spdlog::info("    IP     : {}", serverIP_);
+    spdlog::info("    Port   : {}", serverPort_);
 }
 
 std::string ConfigXML::getModelPath() const noexcept { return modelPath_; }

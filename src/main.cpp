@@ -1,20 +1,46 @@
 #include "PipelineController.hpp"
 #include "ConfigXML.hpp"
+
+#include <csignal>
+#include <atomic>
+#include <mutex>
 #include <condition_variable>
+#include <spdlog/spdlog.h>
+
+namespace {
+    std::atomic<bool> g_running{true};
+    std::mutex g_shutdownMutex;
+    std::condition_variable g_shutdownCv;
+
+    void signalHandler(int signal)
+    {
+        spdlog::info("[main] - Received signal {}, shutting down", signal);
+        g_running = false;
+        g_shutdownCv.notify_all();
+    }
+}
 
 int main()
 {
-    // Initialize configuration from config.xml
-    ConfigXML::getInstance().initialize();
+    std::signal(SIGINT, signalHandler);
+    std::signal(SIGTERM, signalHandler);
 
-    PipelineController pipeline;
-    pipeline.start();
+    try {
+        ConfigXML::getInstance().initialize();
 
-    std::mutex mtx;
-    std::condition_variable cv;
+        PipelineController pipeline;
+        pipeline.start();
 
-    std::unique_lock<std::mutex> lock(mtx);
-    cv.wait(lock); // The main thread sleeps and waits until it is killed with Ctrl + C.
+        // Block until SIGINT or SIGTERM
+        std::unique_lock<std::mutex> lock(g_shutdownMutex);
+        g_shutdownCv.wait(lock, [] { return !g_running; });
 
-    pipeline.stop();
+        pipeline.stop();
+    } catch (const std::exception& e) {
+        spdlog::error("[main] - Fatal error: {}", e.what());
+        return 1;
+    }
+
+    spdlog::info("[main] - Clean exit");
+    return 0;
 }

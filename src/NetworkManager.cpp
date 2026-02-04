@@ -104,15 +104,16 @@ void NetworkManager::networkIoLoop() {
 
             // Send all pending responses that worker threads have enqueued.
             // tryPop() is non-blocking and returns std::nullopt when queue is empty.
-            while (auto response = responseQueue_.tryPop()) {
-                zmq::message_t id(response->clientId.data(), response->clientId.size());
-                zmq::message_t empty;
-                zmq::message_t data(response->payload.data(), response->payload.size());
+            auto response = responseQueue_.pop();
 
-                routerSocket_.send(id, zmq::send_flags::sndmore);
-                routerSocket_.send(empty, zmq::send_flags::sndmore);
-                routerSocket_.send(data, zmq::send_flags::dontwait);
-            }
+            zmq::message_t id(response.clientId.data(), response.clientId.size());
+            zmq::message_t empty;
+            zmq::message_t data(response.payload.data(), response.payload.size());
+
+            routerSocket_.send(id, zmq::send_flags::sndmore);
+            routerSocket_.send(empty, zmq::send_flags::sndmore);
+            routerSocket_.send(data, zmq::send_flags::dontwait);
+
 
         } catch (const zmq::error_t& e) {
             if (e.num() == ETERM) {
